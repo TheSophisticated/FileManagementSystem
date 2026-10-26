@@ -141,23 +141,25 @@ public class FileSystem implements FileManagerService{
 
             Iterator<Path> iterator = pathStream.iterator();
 
-            while (iterator.hasNext()){
-                Path currentPath=iterator.next();
+            while (iterator.hasNext()) {
+                Path currentPath = iterator.next();
+                Path fileNamePath = currentPath.getFileName();
+                if (fileNamePath == null) continue;
 
-                Path fileNamePath=currentPath.getFileName();
+                String pathStr = currentPath.toString();
+                if (pathStr.contains("/.") || pathStr.contains("/target/") || pathStr.contains("/build/") || pathStr.contains("/bin/")) {
+                    continue;
+                }
 
-                String nameText=fileNamePath.toString();
-
-                String nameTextLower=nameText.toLowerCase(Locale.ROOT);
+                String nameText = fileNamePath.toString();
+                String nameTextLower = nameText.toLowerCase(Locale.ROOT);
 
                 if (nameTextLower.contains(searchQuery)) {
                     if (Files.isDirectory(currentPath, LinkOption.NOFOLLOW_LINKS)) {
-                        FolderItem folderResult=new FolderItem(currentPath);
-
+                        FolderItem folderResult = new FolderItem(currentPath);
                         results.add(folderResult);
                     } else {
-                        FileItem fileResult=new FileItem(currentPath);
-
+                        FileItem fileResult = new FileItem(currentPath);
                         results.add(fileResult);
                     }
                 }
