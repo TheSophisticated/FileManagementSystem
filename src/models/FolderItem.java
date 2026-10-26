@@ -13,14 +13,27 @@ public class FolderItem extends FileSystemItem{
         super(path);
     }
 
-    public ArrayList<FileSystemItem> getChildren() throws IOException{
+    public ArrayList<FileSystemItem> getChildren() throws IOException {
+        return getChildren(false);
+    }
+
+    public ArrayList<FileSystemItem> getChildren(boolean includeHidden) throws IOException {
         ArrayList<FileSystemItem> children = new ArrayList<>();
     
-        try(Stream<Path> stream = Files.list(path)){
+        try (Stream<Path> stream = Files.list(path)) {
             stream.forEach(p -> {
-                if(Files.isDirectory(p)){
+                String name = p.getFileName() != null ? p.getFileName().toString() : "";
+                if (!includeHidden) {
+                    if (name.startsWith(".") || name.equals("target") || name.equals("build") || name.equals("bin")) {
+                        return;
+                    }
+                    try {
+                        if (Files.isHidden(p)) return;
+                    } catch (Exception ignored) {}
+                }
+                if (Files.isDirectory(p)) {
                     children.add(new FolderItem(p));
-                } else{
+                } else {
                     children.add(new FileItem(p));
                 }
             });

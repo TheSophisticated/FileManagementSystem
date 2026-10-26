@@ -36,6 +36,7 @@ final class FolderGraphView extends Pane {
     private final FileSystem fileSystem;
     private final Consumer<String> statusReporter;
     private final Consumer<IOException> errorReporter;
+    private ExplorerController controller;
     private boolean darkMode;
     private GraphNode rootNode;
 
@@ -44,6 +45,17 @@ final class FolderGraphView extends Pane {
         this.fileSystem = fileSystem;
         this.errorReporter = errorReporter;
         this.statusReporter = statusReporter;
+
+        this.setOnContextMenuRequested(event -> {
+            if (event.getTarget() == this && controller != null) {
+                var menu = ItemContextMenu.createForBackground(controller, getScene().getWindow());
+                menu.show(this, event.getScreenX(), event.getScreenY());
+            }
+        });
+    }
+
+    void setController(ExplorerController controller) {
+        this.controller = controller;
     }
 
     void setWorkspace(FolderItem workspace) throws IOException {
@@ -246,20 +258,39 @@ final class FolderGraphView extends Pane {
         card.setEffect(new DropShadow(10, 0, 3,
                 themeColor("#18315322", "#00000055")));
 
-        if (folder) {
-            configureFolderCard(card, node);
-        }
+        configureNodeCard(card, node, folder);
         getChildren().add(card);
         showEmptyFolderHint(node, folder, cardWidth, cardHeight);
     }
 
-    private void configureFolderCard(StackPane card, GraphNode node) {
+    private void configureNodeCard(StackPane card, GraphNode node, boolean folder) {
         card.setCursor(Cursor.HAND);
         card.setOnMouseClicked(event -> {
+            if (controller != null) {
+                controller.getSelectedItems().setAll(node.item);
+            }
             if (event.getButton() == MouseButton.PRIMARY) {
-                toggleFolder(node);
+                if (folder) {
+                    if (event.getClickCount() == 2 && controller != null) {
+                        controller.navigateTo(node.item.getPath());
+                    } else {
+                        toggleFolder(node);
+                    }
+                } else if (event.getClickCount() == 2 && controller != null) {
+                    controller.openItem(node.item);
+                }
             }
         });
+
+        card.setOnContextMenuRequested(event -> {
+            if (controller != null) {
+                controller.getSelectedItems().setAll(node.item);
+                var menu = ItemContextMenu.createForItems(controller, getScene().getWindow());
+                menu.show(card, event.getScreenX(), event.getScreenY());
+                event.consume();
+            }
+        });
+
         card.setOnMouseEntered(event -> {
             card.setScaleX(1.025);
             card.setScaleY(1.025);
